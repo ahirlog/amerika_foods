@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_notes/model/food_item_model.dart';
+import 'package:flutter_notes/utils/routes/routes_name.dart';
+import 'package:flutter_notes/view_model/cart_view_model.dart';
+import 'package:flutter_notes/view_model/restaurant_view_model.dart';
+import 'package:provider/provider.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -8,60 +13,15 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final List<FoodItem> _foodItems = [
-    FoodItem(
-      name: 'Chicken Slab Burger',
-      description: 'It is a long established fact that a reader will be distracted.',
-      price: 259,
-      image: 'assets/burger1.jpg',
-    ),
-    FoodItem(
-      name: 'Chicken Crunch Burger',
-      description: 'It is a long established fact that a reader will be distracted.',
-      price: 209,
-      image: 'assets/burger2.jpg',
-    ),
-    FoodItem(
-      name: 'Donut Header Chicken',
-      description: 'It is a long established fact that a reader will be distracted.',
-      price: 199,
-      image: 'assets/burger3.jpg',
-    ),
-    FoodItem(
-      name: 'Mighty Chicken Patty Burger',
-      description: 'It is a long established fact that a reader will be distracted.',
-      price: 209,
-      image: 'assets/burger4.jpg',
-    ),
-    FoodItem(
-      name: 'Chicken Crunch Burger',
-      description: 'It is a long established fact that a reader will be distracted.',
-      price: 209,
-      image: 'assets/burger2.jpg',
-    ),
-  ];
-
   final List<String> _searchSuggestions = ['Burgers', 'Chicken', 'Fries', 'Beverages', 'Sides', 'Desserts'];
   bool _isSearching = false;
   String _searchQuery = "Chicken";
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _searchController.text = _searchQuery;
-  }
-
-  int get _totalItemsInCart => _foodItems.fold(0, (sum, item) => sum + item.quantity);
-  double get _totalPrice => _foodItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
-
-  void _updateQuantity(int index, int change) {
-    setState(() {
-      int newQuantity = _foodItems[index].quantity + change;
-      if (newQuantity >= 0) {
-        _foodItems[index].quantity = newQuantity;
-      }
-    });
   }
 
   void _toggleSearch() {
@@ -85,23 +45,29 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            _isSearching
-                ? _buildSearchScreen()
-                : _buildResultsScreen(),
-            if (_totalItemsInCart > 0 && !_isSearching)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _buildCartBar(),
-              ),
-          ],
-        ),
-      ),
+    return Consumer2<RestaurantViewModel, CartViewModel>(
+      builder: (context, restaurantViewModel, cartViewModel, _) {
+        final searchResults = restaurantViewModel.searchItems(_searchQuery);
+        
+        return Scaffold(
+          body: SafeArea(
+            child: Stack(
+              children: [
+                _isSearching
+                    ? _buildSearchScreen()
+                    : _buildResultsScreen(searchResults, restaurantViewModel, cartViewModel),
+                if (cartViewModel.totalItems > 0 && !_isSearching)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: _buildCartBar(context, cartViewModel),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -131,14 +97,14 @@ class _SearchScreenState extends State<SearchScreen> {
                   _performSearch(suggestion);
                 },
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   decoration: BoxDecoration(
                     color: Colors.green[50],
                     borderRadius: BorderRadius.circular(20.0),
                   ),
                   child: Text(
                     suggestion,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.green,
                       fontSize: 16,
                     ),
@@ -152,7 +118,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildResultsScreen() {
+  Widget _buildResultsScreen(List<FoodItem> searchResults, RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -160,8 +126,8 @@ class _SearchScreenState extends State<SearchScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Text(
-            '12 Search results...',
-            style: TextStyle(
+            '${searchResults.length} Search results...',
+            style: const TextStyle(
               color: Colors.black87,
               fontSize: 16,
             ),
@@ -169,11 +135,11 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         Expanded(
           child: ListView.separated(
-            padding: EdgeInsets.only(bottom: _totalItemsInCart > 0 ? 80 : 20),
-            itemCount: _foodItems.length,
-            separatorBuilder: (context, index) => Divider(height: 1),
+            padding: EdgeInsets.only(bottom: cartViewModel.totalItems > 0 ? 80 : 20),
+            itemCount: searchResults.length,
+            separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
-              return _buildFoodItem(index);
+              return _buildFoodItem(index, searchResults, restaurantViewModel, cartViewModel);
             },
           ),
         ),
@@ -190,14 +156,14 @@ class _SearchScreenState extends State<SearchScreen> {
             onTap: _isSearching ? _exitSearch : () {
               Navigator.pop(context);
             },
-            child: Icon(Icons.arrow_back, color: Colors.black87),
+            child: const Icon(Icons.arrow_back, color: Colors.black87),
           ),
-          SizedBox(width: 12.0),
+          const SizedBox(width: 12.0),
           Expanded(
             child: GestureDetector(
               onTap: _toggleSearch,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(24.0),
@@ -205,24 +171,24 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: Row(
                   children: [
                     Icon(Icons.search, color: Colors.grey[600]),
-                    SizedBox(width: 8.0),
+                    const SizedBox(width: 8.0),
                     Expanded(
                       child: _isSearching
                           ? TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search',
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: _performSearch,
-                      )
+                              controller: _searchController,
+                              decoration: const InputDecoration(
+                                hintText: 'Search',
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: _performSearch,
+                            )
                           : Text(
-                        _searchQuery,
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: 16,
-                        ),
-                      ),
+                              _searchQuery,
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                              ),
+                            ),
                     ),
                     Icon(Icons.mic, color: Colors.grey[600]),
                   ],
@@ -235,8 +201,10 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildFoodItem(int index) {
-    final item = _foodItems[index];
+  Widget _buildFoodItem(int index, List<FoodItem> items, RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
+    final item = items[index];
+    final menuIndex = restaurantViewModel.menuItems.indexWhere((menuItem) => menuItem.name == item.name);
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
       child: Row(
@@ -246,27 +214,27 @@ class _SearchScreenState extends State<SearchScreen> {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: Colors.black,
               borderRadius: BorderRadius.circular(8.0),
               image: DecorationImage(
-                image: AssetImage(item.image),
+                image: NetworkImage(item.imageUrl),
                 fit: BoxFit.cover,
+                onError: (_, __) => const Icon(Icons.error),
               ),
             ),
           ),
-          SizedBox(width: 12.0),
+          const SizedBox(width: 12.0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 4.0),
+                const SizedBox(height: 4.0),
                 Text(
                   item.description,
                   style: TextStyle(
@@ -274,17 +242,17 @@ class _SearchScreenState extends State<SearchScreen> {
                     fontSize: 14,
                   ),
                 ),
-                SizedBox(height: 8.0),
+                const SizedBox(height: 8.0),
                 Row(
                   children: [
                     Text(
                       '₹ ${item.price.toInt()}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Spacer(),
+                    const Spacer(),
                     Container(
                       width: 36,
                       height: 36,
@@ -294,21 +262,29 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       child: IconButton(
                         padding: EdgeInsets.zero,
-                        icon: Icon(Icons.remove, size: 18),
+                        icon: const Icon(Icons.remove, size: 18),
                         onPressed: () {
-                          _updateQuantity(index, -1);
+                          if (menuIndex >= 0) {
+                            restaurantViewModel.updateItemQuantity(menuIndex, -1);
+                            
+                            // If quantity becomes zero after decrement, update cart
+                            final updatedItem = restaurantViewModel.menuItems[menuIndex];
+                            if (updatedItem.quantity >= 0) {
+                              cartViewModel.addToCart(updatedItem);
+                            }
+                          }
                         },
                       ),
                     ),
-                    SizedBox(width: 12.0),
+                    const SizedBox(width: 12.0),
                     Text(
-                      '${item.quantity}',
-                      style: TextStyle(
+                      menuIndex >= 0 ? '${restaurantViewModel.menuItems[menuIndex].quantity}' : '0',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(width: 12.0),
+                    const SizedBox(width: 12.0),
                     Container(
                       width: 36,
                       height: 36,
@@ -318,9 +294,15 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       child: IconButton(
                         padding: EdgeInsets.zero,
-                        icon: Icon(Icons.add, size: 18, color: Colors.white),
+                        icon: const Icon(Icons.add, size: 18, color: Colors.white),
                         onPressed: () {
-                          _updateQuantity(index, 1);
+                          if (menuIndex >= 0) {
+                            restaurantViewModel.updateItemQuantity(menuIndex, 1);
+                            
+                            // Update cart
+                            final updatedItem = restaurantViewModel.menuItems[menuIndex]; 
+                            cartViewModel.addToCart(updatedItem);
+                          }
                         },
                       ),
                     ),
@@ -334,49 +316,37 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildCartBar() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$_totalItemsInCart ${_totalItemsInCart == 1 ? 'item' : 'items'}',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(width: 12.0),
-          Text(
-            '₹ ${_totalPrice.toInt()}',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Spacer(),
-          ElevatedButton(
-            onPressed: () {
-              // Navigate to cart page
-            },
-            style: ElevatedButton.styleFrom(
-              primary: Colors.green,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0),
+  Widget _buildCartBar(BuildContext context, CartViewModel cartViewModel) {
+    return InkWell(
+      onTap: () {
+        Navigator.pushNamed(context, RoutesName.cart);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+        decoration: const BoxDecoration(
+          color: Colors.green,
+        ),
+        child: Row(
+          children: [
+            Text(
+              '${cartViewModel.totalItems} ${cartViewModel.totalItems == 1 ? 'item' : 'items'}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
-              padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
             ),
-            child: Text(
+            const SizedBox(width: 12.0),
+            Text(
+              '₹ ${cartViewModel.totalPrice.toInt()}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const Spacer(),
+            const Text(
               'View cart',
               style: TextStyle(
                 fontSize: 16,
@@ -384,25 +354,15 @@ class _SearchScreenState extends State<SearchScreen> {
                 color: Colors.white,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white,
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }
-}
-
-class FoodItem {
-  final String name;
-  final String description;
-  final double price;
-  final String image;
-  int quantity;
-
-  FoodItem({
-    required this.name,
-    required this.description,
-    required this.price,
-    required this.image,
-    this.quantity = 0,
-  });
 }
