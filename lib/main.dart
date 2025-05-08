@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_notes/utils/routes/routes.dart';
 import 'package:flutter_notes/utils/routes/routes_name.dart';
-import 'package:flutter_notes/view_model/auth_view_model.dart';
-import 'package:flutter_notes/view_model/user_view_model.dart';
+import 'package:flutter_notes/view_model/cart_view_model.dart';
+import 'package:flutter_notes/view_model/restaurant_view_model.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -16,11 +16,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthViewModel()),
-        ChangeNotifierProvider(create: (_) => UserViewModel()),
+        ChangeNotifierProvider(create: (_) => RestaurantViewModel()),
+        ChangeNotifierProvider(create: (_) => CartViewModel()),
       ],
-      child: const MaterialApp(
-        title: 'Flutter Demo',
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Amerika Foods',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+          useMaterial3: true,
+        ),
         initialRoute: RoutesName.splash,
         onGenerateRoute: Routes.generateRoute,
       ),
