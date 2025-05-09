@@ -328,9 +328,16 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                   },
                   child: Container(
                     padding: const EdgeInsets.only(
-                        top: 30, bottom: 30, left: 16, right: 16),
-                    decoration: const BoxDecoration(
+                        top: 15, bottom: 30, left: 16, right: 16),
+                    decoration: BoxDecoration(
                       color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
