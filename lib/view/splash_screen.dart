@@ -21,9 +21,14 @@ class _SplashViewState extends State<SplashView> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text('Amerika Foods',
-            style: Theme.of(context).textTheme.headlineMedium),
-      ), // Center
-    ); // Scaffold
+        child: Text(
+          'Amerika Foods',
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontFamily: 'FuturaStd',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
   }
 }

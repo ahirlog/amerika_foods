@@ -10,7 +10,13 @@ class CartScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cart'),
+        title: const Text(
+          'Cart',
+          style: TextStyle(
+            fontFamily: 'FuturaStd',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
       ),
       body: Consumer<CartViewModel>(
@@ -19,7 +25,11 @@ class CartScreen extends StatelessWidget {
             return const Center(
               child: Text(
                 'Your cart is empty',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+                style: TextStyle(
+                  fontFamily: 'FuturaStd',
+                  fontSize: 18,
+                  color: Colors.grey
+                ),
               ),
             );
           }
@@ -68,6 +78,7 @@ class CartScreen extends StatelessWidget {
               Text(
                 item.name,
                 style: const TextStyle(
+                  fontFamily: 'FuturaStd',
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -76,6 +87,7 @@ class CartScreen extends StatelessWidget {
               Text(
                 '₹ ${item.price.toInt()}',
                 style: const TextStyle(
+                  fontFamily: 'FuturaStd',
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -101,6 +113,7 @@ class CartScreen extends StatelessWidget {
             Text(
               '${item.quantity}',
               style: const TextStyle(
+                fontFamily: 'FuturaStd',
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -143,6 +156,7 @@ class CartScreen extends StatelessWidget {
           const Text(
             'Order Summary',
             style: TextStyle(
+              fontFamily: 'FuturaStd',
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -151,16 +165,16 @@ class CartScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Items Total'),
-              Text('₹ ${cartViewModel.totalPrice.toInt()}'),
+              const Text('Items Total', style: TextStyle(fontFamily: 'FuturaStd')),
+              Text('₹ ${cartViewModel.totalPrice.toInt()}', style: TextStyle(fontFamily: 'FuturaStd')),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Delivery Fee'),
-              const Text('₹ 40'),
+              const Text('Delivery Fee', style: TextStyle(fontFamily: 'FuturaStd')),
+              const Text('₹ 40', style: TextStyle(fontFamily: 'FuturaStd')),
             ],
           ),
           const SizedBox(height: 8),
@@ -172,12 +186,14 @@ class CartScreen extends StatelessWidget {
               const Text(
                 'To Pay',
                 style: TextStyle(
+                  fontFamily: 'FuturaStd',
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
                 '₹ ${(cartViewModel.totalPrice + 40).toInt()}',
                 style: const TextStyle(
+                  fontFamily: 'FuturaStd',
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -198,6 +214,7 @@ class CartScreen extends StatelessWidget {
               child: const Text(
                 'Place Order',
                 style: TextStyle(
+                  fontFamily: 'FuturaStd',
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,

@@ -81,6 +81,7 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Text(
             'Search recommendations',
             style: TextStyle(
+              fontFamily: 'FuturaStd',
               color: Colors.grey[600],
               fontSize: 16,
             ),
@@ -105,6 +106,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: Text(
                     suggestion,
                     style: const TextStyle(
+                      fontFamily: 'FuturaStd',
                       color: Colors.green,
                       fontSize: 16,
                     ),
@@ -128,6 +130,7 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Text(
             '${searchResults.length} Search results...',
             style: const TextStyle(
+              fontFamily: 'FuturaStd',
               color: Colors.black87,
               fontSize: 16,
             ),
@@ -179,12 +182,16 @@ class _SearchScreenState extends State<SearchScreen> {
                               decoration: const InputDecoration(
                                 hintText: 'Search',
                                 border: InputBorder.none,
+                                hintStyle: TextStyle(
+                                  fontFamily: 'FuturaStd',
+                                ),
                               ),
                               onSubmitted: _performSearch,
                             )
                           : Text(
                               _searchQuery,
                               style: const TextStyle(
+                                fontFamily: 'FuturaStd',
                                 color: Colors.black87,
                                 fontSize: 16,
                               ),
@@ -230,6 +237,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 Text(
                   item.name,
                   style: const TextStyle(
+                    fontFamily: 'FuturaStd',
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -238,6 +246,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 Text(
                   item.description,
                   style: TextStyle(
+                    fontFamily: 'FuturaStd',
                     color: Colors.grey[600],
                     fontSize: 14,
                   ),
@@ -248,6 +257,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     Text(
                       '₹ ${item.price.toInt()}',
                       style: const TextStyle(
+                        fontFamily: 'FuturaStd',
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -280,6 +290,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     Text(
                       menuIndex >= 0 ? '${restaurantViewModel.menuItems[menuIndex].quantity}' : '0',
                       style: const TextStyle(
+                        fontFamily: 'FuturaStd',
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -331,6 +342,7 @@ class _SearchScreenState extends State<SearchScreen> {
             Text(
               '${cartViewModel.totalItems} ${cartViewModel.totalItems == 1 ? 'item' : 'items'}',
               style: const TextStyle(
+                fontFamily: 'FuturaStd',
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -340,6 +352,7 @@ class _SearchScreenState extends State<SearchScreen> {
             Text(
               '₹ ${cartViewModel.totalPrice.toInt()}',
               style: const TextStyle(
+                fontFamily: 'FuturaStd',
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -349,6 +362,7 @@ class _SearchScreenState extends State<SearchScreen> {
             const Text(
               'View cart',
               style: TextStyle(
+                fontFamily: 'FuturaStd',
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,

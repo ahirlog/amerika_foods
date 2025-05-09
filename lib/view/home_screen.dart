@@ -8,7 +8,13 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Amerika Foods'),
+        title: const Text(
+          'Amerika Foods',
+          style: TextStyle(
+            fontFamily: 'FuturaStd',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
       ),
       body: Center(
@@ -26,6 +32,7 @@ class HomeScreen extends StatelessWidget {
           child: const Text(
             'Amerika Foods',
             style: TextStyle(
+              fontFamily: 'FuturaStd',
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
