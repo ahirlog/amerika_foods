@@ -462,6 +462,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                       color: Color(0xff333333),
                     ),
                   ),
+                  const Spacer(),
                   Row(
                     children: [
                       InkWell(

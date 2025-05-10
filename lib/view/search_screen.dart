@@ -21,32 +21,36 @@ class _SearchScreenState extends State<SearchScreen> {
     'Sides',
     'Desserts'
   ];
-  bool _isSearching = false;
-  String _searchQuery = "Chicken";
+
+  bool _isSearchFocused = false;
+  String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _searchController.text = _searchQuery;
+    _searchFocusNode.addListener(_onFocusChange);
   }
 
-  void _toggleSearch() {
-    setState(() {
-      _isSearching = true;
-    });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.removeListener(_onFocusChange);
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
-  void _exitSearch() {
+  void _onFocusChange() {
     setState(() {
-      _isSearching = false;
+      _isSearchFocused = _searchFocusNode.hasFocus;
     });
   }
 
   void _performSearch(String query) {
     setState(() {
       _searchQuery = query;
-      _isSearching = false;
+      _searchFocusNode.unfocus();
     });
   }
 
@@ -54,23 +58,28 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Consumer2<RestaurantViewModel, CartViewModel>(
       builder: (context, restaurantViewModel, cartViewModel, _) {
-        final searchResults = restaurantViewModel.searchItems(_searchQuery);
+        final searchResults = _searchQuery.isNotEmpty
+            ? restaurantViewModel.searchItems(_searchQuery)
+            : <FoodItem>[];
 
         return Scaffold(
+          backgroundColor: Colors.white,
           body: SafeArea(
-            child: Stack(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _isSearching
-                    ? _buildSearchScreen()
-                    : _buildResultsScreen(
-                        searchResults, restaurantViewModel, cartViewModel),
-                if (cartViewModel.totalItems > 0 && !_isSearching)
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: _buildCartBar(context, cartViewModel),
-                  ),
+                _buildSearchHeader(),
+                Expanded(
+                  child: _isSearchFocused
+                      ? _buildSuggestionsScreen()
+                      : _searchQuery.isEmpty
+                          ? _buildEmptySearchScreen()
+                          : _buildResultsScreen(searchResults,
+                              restaurantViewModel, cartViewModel),
+                ),
+                if (cartViewModel.totalItems > 0 && !_isSearchFocused)
+                  _buildCartBar(context, cartViewModel),
               ],
             ),
           ),
@@ -79,79 +88,135 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildSearchScreen() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSearchHeader(),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Search recommendations',
+  Widget _buildEmptySearchScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            'assets/images/search_icon.png',
+            height: 70,
+            color: Colors.grey.shade300,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Search for your favorite food',
             style: TextStyle(
               fontFamily: 'FuturaStd',
-              color: Colors.grey[600],
               fontSize: 16,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-          child: Wrap(
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionsScreen() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Search suggestions',
+            style: TextStyle(
+              fontFamily: 'FuturaStd',
+              color: Color(0xff888888),
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
             spacing: 8.0,
             runSpacing: 8.0,
             children: _searchSuggestions.map((suggestion) {
               return GestureDetector(
                 onTap: () {
+                  _searchController.text = suggestion;
                   _performSearch(suggestion);
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16.0, vertical: 8.0),
                   decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    borderRadius: BorderRadius.circular(20.0),
+                    color: const Color(0xffe6f8ec),
+                    borderRadius: BorderRadius.circular(4.0),
                   ),
                   child: Text(
                     suggestion,
                     style: const TextStyle(
                       fontFamily: 'FuturaStd',
-                      color: Colors.green,
-                      fontSize: 16,
+                      color: Color(0xff11B546),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
               );
             }).toList(),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildResultsScreen(List<FoodItem> searchResults,
       RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
+    if (searchResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 70,
+              color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No results found for "${_searchQuery}"',
+              style: TextStyle(
+                fontFamily: 'FuturaStd',
+                fontSize: 16,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSearchHeader(),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
           child: Text(
-            '${searchResults.length} Search results...',
+            '${searchResults.length} search results',
             style: const TextStyle(
               fontFamily: 'FuturaStd',
-              color: Colors.black87,
-              fontSize: 16,
+              color: Color(0xff333333),
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),
         Expanded(
           child: ListView.separated(
-            padding:
-                EdgeInsets.only(bottom: cartViewModel.totalItems > 0 ? 80 : 20),
+            padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 0,
+                bottom: cartViewModel.totalItems > 0 ? 80 : 20),
             itemCount: searchResults.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
+            separatorBuilder: (context, index) => const Divider(
+              height: 50,
+              color: Color(0xffDDDDDD),
+            ),
             itemBuilder: (context, index) {
               return _buildFoodItem(
                   index, searchResults, restaurantViewModel, cartViewModel);
@@ -171,58 +236,64 @@ class _SearchScreenState extends State<SearchScreen> {
             onTap: () {
               Navigator.pop(context);
             },
-            child: const Image(
-              image: AssetImage(
-                'assets/images/back_icon.png',
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.transparent),
               ),
-              height: 12,
+              child: const Image(
+                image: AssetImage(
+                  'assets/images/back_icon.png',
+                ),
+                height: 12,
+              ),
             ),
           ),
-          const SizedBox(width: 20.0),
+          const SizedBox(width: 12.0),
           Expanded(
-            child: GestureDetector(
-              onTap: _toggleSearch,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 12.0),
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(10.0),
-                  border: Border.all(
-                    color: const Color(0xffdddddd),
-                  ),
+            child: Container(
+              height: 44,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10.0),
+                border: Border.all(
+                  color: const Color(0xffdddddd),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: Color(0xff333333)),
-                    const SizedBox(width: 8.0),
-                    Expanded(
-                      child: _isSearching
-                          ? TextField(
-                              controller: _searchController,
-                              decoration: const InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 0.0),
-                                hintText: 'Search',
-                                border: InputBorder.none,
-                                hintStyle: TextStyle(
-                                  fontFamily: 'FuturaStd',
-                                ),
-                              ),
-                              onSubmitted: _performSearch,
-                            )
-                          : Text(
-                              _searchQuery,
-                              style: const TextStyle(
-                                fontFamily: 'FuturaStd',
-                                color: Colors.black87,
-                                fontSize: 16,
-                              ),
-                            ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.search, color: Color(0xff333333), size: 18),
+                  const SizedBox(width: 8.0),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(vertical: 10.0),
+                        hintText: 'Search',
+                        hintStyle: TextStyle(
+                          fontFamily: 'FuturaStd',
+                          color: Color(0xff888888),
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                      style: const TextStyle(
+                        fontFamily: 'FuturaStd',
+                        color: Color(0xff333333),
+                        fontSize: 14,
+                      ),
+                      onFieldSubmitted: _performSearch,
                     ),
-                    const Icon(Icons.mic_none, color: Color(0xff333333)),
-                  ],
-                ),
+                  ),
+                  const Icon(Icons.mic_none,
+                      color: Color(0xff333333), size: 20),
+                ],
               ),
             ),
           ),
@@ -237,125 +308,141 @@ class _SearchScreenState extends State<SearchScreen> {
     final menuIndex = restaurantViewModel.menuItems
         .indexWhere((menuItem) => menuItem.name == item.name);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.0),
-              image: DecorationImage(
-                image: NetworkImage(item.imageUrl),
-                fit: BoxFit.cover,
-                onError: (_, __) => const Icon(Icons.error),
-              ),
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10.0),
+          child: Image.network(
+            item.imageUrl,
+            width: 120,
+            height: 120,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 120,
+                height: 120,
+                color: Colors.grey.shade300,
+                child: const Icon(Icons.fastfood, color: Colors.grey),
+              );
+            },
           ),
-          const SizedBox(width: 12.0),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontFamily: 'FuturaStd',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+        ),
+        const SizedBox(width: 16.0),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.name,
+                style: const TextStyle(
+                  fontFamily: 'FuturaStd',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xff333333),
                 ),
-                const SizedBox(height: 4.0),
-                Text(
-                  item.description,
-                  style: TextStyle(
-                    fontFamily: 'FuturaStd',
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
+              ),
+              const SizedBox(height: 4.0),
+              Text(
+                item.description,
+                style: const TextStyle(
+                  fontFamily: 'FuturaStd',
+                  color: Color(0xff888888),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
                 ),
-                const SizedBox(height: 8.0),
-                Row(
-                  children: [
-                    Text(
-                      '₹ ${item.price.toInt()}',
-                      style: const TextStyle(
-                        fontFamily: 'FuturaStd',
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+              ),
+              const SizedBox(height: 20.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '₹ ${item.price.toInt()}',
+                    style: const TextStyle(
+                      fontFamily: 'FuturaStd',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xff333333),
                     ),
-                    const Spacer(),
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.remove, size: 18),
-                        onPressed: () {
-                          if (menuIndex >= 0) {
-                            restaurantViewModel.updateItemQuantity(
-                                menuIndex, -1);
+                  ),
+                  const Spacer(),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xffdddddd)),
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.remove,
+                          size: 16, color: Color(0xffdddddd)),
+                      onPressed: () {
+                        if (menuIndex >= 0) {
+                          restaurantViewModel.updateItemQuantity(
+                              menuIndex, -1);
 
-                            // If quantity becomes zero after decrement, update cart
-                            final updatedItem =
-                                restaurantViewModel.menuItems[menuIndex];
-                            if (updatedItem.quantity >= 0) {
-                              cartViewModel.addToCart(updatedItem);
-                            }
+                          // If quantity becomes zero after decrement, update cart
+                          final updatedItem =
+                              restaurantViewModel.menuItems[menuIndex];
+                          if (updatedItem.quantity >= 0) {
+                            cartViewModel.addToCart(updatedItem);
                           }
-                        },
-                      ),
+                        }
+                      },
                     ),
-                    const SizedBox(width: 12.0),
-                    Text(
+                  ),
+                  Container(
+                    width: 32,
+                    alignment: Alignment.center,
+                    child: Text(
                       menuIndex >= 0
                           ? '${restaurantViewModel.menuItems[menuIndex].quantity}'
                           : '0',
                       style: const TextStyle(
                         fontFamily: 'FuturaStd',
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff333333),
                       ),
                     ),
-                    const SizedBox(width: 12.0),
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xffe6f8ec),
+                      borderRadius: BorderRadius.circular(4.0),
+                      border: Border.all(
+                        color: const Color(0xff0db647),
                       ),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.add,
-                            size: 18, color: Colors.white),
-                        onPressed: () {
-                          if (menuIndex >= 0) {
-                            restaurantViewModel.updateItemQuantity(
-                                menuIndex, 1);
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.add,
+                        size: 16,
+                        color: Color(0xff0db647),
+                      ),
+                      onPressed: () {
+                        if (menuIndex >= 0) {
+                          restaurantViewModel.updateItemQuantity(
+                              menuIndex, 1);
 
-                            // Update cart
-                            final updatedItem =
-                                restaurantViewModel.menuItems[menuIndex];
-                            cartViewModel.addToCart(updatedItem);
-                          }
-                        },
-                      ),
+                          // Update cart
+                          final updatedItem =
+                              restaurantViewModel.menuItems[menuIndex];
+                          cartViewModel.addToCart(updatedItem);
+                        }
+                      },
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -365,9 +452,17 @@ class _SearchScreenState extends State<SearchScreen> {
         Navigator.pushNamed(context, RoutesName.cart);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-        decoration: const BoxDecoration(
-          color: Colors.green,
+        padding:
+            const EdgeInsets.only(top: 15, bottom: 30, left: 16, right: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -375,36 +470,46 @@ class _SearchScreenState extends State<SearchScreen> {
               '${cartViewModel.totalItems} ${cartViewModel.totalItems == 1 ? 'item' : 'items'}',
               style: const TextStyle(
                 fontFamily: 'FuturaStd',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Color(0xff333333),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 12.0),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              height: 16,
+              width: 1,
+              color: const Color(0xffDDDDDD),
+            ),
             Text(
               '₹ ${cartViewModel.totalPrice.toInt()}',
               style: const TextStyle(
                 fontFamily: 'FuturaStd',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Color(0xff333333),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const Spacer(),
-            const Text(
-              'View cart',
-              style: TextStyle(
-                fontFamily: 'FuturaStd',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xff11B546),
+                borderRadius: BorderRadius.circular(8),
               ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.white,
-              size: 16,
+              width: 93,
+              height: 44,
+              child: const Center(
+                child: Text(
+                  'View cart',
+                  style: TextStyle(
+                    fontFamily: 'FuturaStd',
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
