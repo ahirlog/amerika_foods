@@ -379,14 +379,27 @@ class _SearchScreenState extends State<SearchScreen> {
                           size: 16, color: Color(0xffdddddd)),
                       onPressed: () {
                         if (menuIndex >= 0) {
+                          // First check if the item exists in cart
+                          final existingCartItemIndex = cartViewModel.cartItems
+                              .indexWhere((cartItem) => cartItem.name == restaurantViewModel.menuItems[menuIndex].name);
+                          
                           restaurantViewModel.updateItemQuantity(
                               menuIndex, -1);
 
                           // If quantity becomes zero after decrement, update cart
                           final updatedItem =
                               restaurantViewModel.menuItems[menuIndex];
+                          
                           if (updatedItem.quantity >= 0) {
-                            cartViewModel.addToCart(updatedItem);
+                            // If item exists in cart, decrease its quantity by 1
+                            if (existingCartItemIndex >= 0) {
+                              cartViewModel.updateCartItemQuantity(existingCartItemIndex, -1);
+                              
+                              // If quantity becomes 0, remove from display
+                              if (updatedItem.quantity == 0 && existingCartItemIndex >= 0) {
+                                cartViewModel.removeFromCart(existingCartItemIndex);
+                              }
+                            }
                           }
                         }
                       },
@@ -426,13 +439,28 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       onPressed: () {
                         if (menuIndex >= 0) {
+                          // First check if item exists in cart
+                          final existingCartItemIndex = cartViewModel.cartItems
+                              .indexWhere((cartItem) => cartItem.name == restaurantViewModel.menuItems[menuIndex].name);
+                          
+                          final updatedItem = restaurantViewModel.menuItems[menuIndex];
                           restaurantViewModel.updateItemQuantity(
                               menuIndex, 1);
 
-                          // Update cart
-                          final updatedItem =
-                              restaurantViewModel.menuItems[menuIndex];
-                          cartViewModel.addToCart(updatedItem);
+                          // If item already exists in cart, update its quantity
+                          if (existingCartItemIndex >= 0) {
+                            cartViewModel.updateCartItemQuantity(existingCartItemIndex, 1);
+                          } else {
+                            // Create a new cart item with quantity 1
+                            final itemToAdd = FoodItem(
+                              name: updatedItem.name,
+                              description: updatedItem.description,
+                              price: updatedItem.price,
+                              imageUrl: updatedItem.imageUrl,
+                              quantity: 1,
+                            );
+                            cartViewModel.addToCart(itemToAdd);
+                          }
                         }
                       },
                     ),

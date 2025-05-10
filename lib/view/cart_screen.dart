@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_notes/model/food_item_model.dart';
 import 'package:flutter_notes/view_model/cart_view_model.dart';
+import 'package:flutter_notes/view_model/restaurant_view_model.dart';
 import 'package:provider/provider.dart';
 
 class CartScreen extends StatelessWidget {
@@ -19,8 +20,8 @@ class CartScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Consumer<CartViewModel>(
-        builder: (context, cartViewModel, _) {
+      body: Consumer2<CartViewModel, RestaurantViewModel>(
+        builder: (context, cartViewModel, restaurantViewModel, _) {
           if (cartViewModel.cartItems.isEmpty) {
             return const Center(
               child: Text(
@@ -43,7 +44,7 @@ class CartScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const Divider(),
                   itemBuilder: (context, index) {
                     final item = cartViewModel.cartItems[index];
-                    return _buildCartItem(context, item, index, cartViewModel);
+                    return _buildCartItem(context, item, index, cartViewModel, restaurantViewModel);
                   },
                 ),
               ),
@@ -55,7 +56,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCartItem(BuildContext context, FoodItem item, int index, CartViewModel cartViewModel) {
+  Widget _buildCartItem(BuildContext context, FoodItem item, int index, CartViewModel cartViewModel, RestaurantViewModel restaurantViewModel) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

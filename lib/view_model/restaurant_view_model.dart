@@ -176,4 +176,11 @@ class RestaurantViewModel with ChangeNotifier {
     }
     notifyListeners();
   }
+
+  // Sets the quantity of an item at the given index without notifying listeners
+  void setItemQuantityWithoutNotifying(int index, int quantity) {
+    if (index >= 0 && index < _menuItems.length) {
+      _menuItems[index].quantity = quantity;
+    }
+  }
 }

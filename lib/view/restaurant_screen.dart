@@ -467,11 +467,23 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                     children: [
                       InkWell(
                         onTap: () {
+                          // First check if the item exists in cart
+                          final existingCartItemIndex = cartViewModel.cartItems
+                              .indexWhere((cartItem) => cartItem.name == item.name);
+                          
                           restaurantViewModel.updateItemQuantity(index, -1);
 
-                          // If quantity becomes zero after decrement, update cart
-                          if (item.quantity == 0) {
-                            cartViewModel.addToCart(item);
+                          if (item.quantity > 0) {
+                            // If item exists in cart, decrease its quantity by 1
+                            if (existingCartItemIndex >= 0) {
+                              cartViewModel.updateCartItemQuantity(existingCartItemIndex, -1);
+                            }
+                          } else {
+                            // Remove item completely from cart if quantity is 0
+                            if (existingCartItemIndex >= 0) {
+                              // Remove item completely
+                              cartViewModel.removeFromCart(existingCartItemIndex);
+                            }
                           }
                         },
                         child: Container(
@@ -505,14 +517,25 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                       ),
                       InkWell(
                         onTap: () {
+                          // First check if the item exists in cart
+                          final existingCartItemIndex = cartViewModel.cartItems
+                              .indexWhere((cartItem) => cartItem.name == item.name);
+                            
                           restaurantViewModel.updateItemQuantity(index, 1);
 
-                          // If quantity becomes 1 after increment, add to cart
-                          if (item.quantity == 1) {
-                            cartViewModel.addToCart(item);
+                          // If item already exists in cart, update its quantity
+                          if (existingCartItemIndex >= 0) {
+                            cartViewModel.updateCartItemQuantity(existingCartItemIndex, 1);
                           } else {
-                            // Otherwise just update the cart with new quantity
-                            cartViewModel.addToCart(item);
+                            // Create a new cart item with quantity 1
+                            final itemToAdd = FoodItem(
+                              name: item.name,
+                              description: item.description,
+                              price: item.price,
+                              imageUrl: item.imageUrl,
+                              quantity: 1,
+                            );
+                            cartViewModel.addToCart(itemToAdd);
                           }
                         },
                         child: Container(

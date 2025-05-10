@@ -17,7 +17,12 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => RestaurantViewModel()),
-        ChangeNotifierProvider(create: (_) => CartViewModel()),
+        ChangeNotifierProvider(create: (context) {
+          final restaurantViewModel = Provider.of<RestaurantViewModel>(context, listen: false);
+          final cartViewModel = CartViewModel();
+          cartViewModel.linkRestaurantViewModel(restaurantViewModel);
+          return cartViewModel;
+        }),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
