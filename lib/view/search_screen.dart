@@ -31,6 +31,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _searchFocusNode.addListener(_onFocusChange);
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
@@ -38,19 +39,28 @@ class _SearchScreenState extends State<SearchScreen> {
     _searchController.dispose();
     _searchFocusNode.removeListener(_onFocusChange);
     _searchFocusNode.dispose();
+    _searchController.removeListener(_onSearchChanged);
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.trim();
+    });
   }
 
   void _onFocusChange() {
     setState(() {
       _isSearchFocused = _searchFocusNode.hasFocus;
+      if (!_searchFocusNode.hasFocus && _searchQuery.isNotEmpty) {
+        _performSearch(_searchQuery);
+      }
     });
   }
 
   void _performSearch(String query) {
     setState(() {
       _searchQuery = query;
-      _searchFocusNode.unfocus();
     });
   }
 
@@ -58,6 +68,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Consumer2<RestaurantViewModel, CartViewModel>(
       builder: (context, restaurantViewModel, cartViewModel, _) {
+        // Show results immediately as user types
         final searchResults = _searchQuery.isNotEmpty
             ? restaurantViewModel.searchItems(_searchQuery)
             : <FoodItem>[];
@@ -71,12 +82,14 @@ class _SearchScreenState extends State<SearchScreen> {
               children: [
                 _buildSearchHeader(),
                 Expanded(
-                  child: _isSearchFocused
+                  child: _isSearchFocused && _searchQuery.isEmpty
                       ? _buildSuggestionsScreen()
                       : _searchQuery.isEmpty
                           ? _buildEmptySearchScreen()
-                          : _buildResultsScreen(searchResults,
-                              restaurantViewModel, cartViewModel),
+                          : searchResults.isEmpty
+                              ? _buildNoResultsScreen()
+                              : _buildResultsScreen(searchResults,
+                                  restaurantViewModel, cartViewModel),
                 ),
                 if (cartViewModel.totalItems > 0 && !_isSearchFocused)
                   _buildCartBar(context, cartViewModel),
@@ -85,6 +98,33 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildNoResultsScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off,
+            size: 70,
+            color: Colors.grey.shade300,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'No results found for "${_searchQuery}"\nTry a different search term',
+            style: TextStyle(
+              fontFamily: 'FuturaStd',
+              fontSize: 16,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -165,38 +205,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildResultsScreen(List<FoodItem> searchResults,
       RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
-    if (searchResults.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off,
-              size: 70,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'No results found for "${_searchQuery}"',
-              style: TextStyle(
-                fontFamily: 'FuturaStd',
-                fontSize: 16,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
           child: Text(
-            '${searchResults.length} search results',
+            '${searchResults.length} results for "${_searchQuery}"',
             style: const TextStyle(
               fontFamily: 'FuturaStd',
               color: Color(0xff333333),
@@ -271,6 +286,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     child: TextFormField(
                       controller: _searchController,
                       focusNode: _searchFocusNode,
+                      onChanged: _performSearch,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(vertical: 10.0),
                         hintText: 'Search',
@@ -381,23 +397,28 @@ class _SearchScreenState extends State<SearchScreen> {
                         if (menuIndex >= 0) {
                           // First check if the item exists in cart
                           final existingCartItemIndex = cartViewModel.cartItems
-                              .indexWhere((cartItem) => cartItem.name == restaurantViewModel.menuItems[menuIndex].name);
-                          
-                          restaurantViewModel.updateItemQuantity(
-                              menuIndex, -1);
+                              .indexWhere((cartItem) =>
+                                  cartItem.name ==
+                                  restaurantViewModel
+                                      .menuItems[menuIndex].name);
+
+                          restaurantViewModel.updateItemQuantity(menuIndex, -1);
 
                           // If quantity becomes zero after decrement, update cart
                           final updatedItem =
                               restaurantViewModel.menuItems[menuIndex];
-                          
+
                           if (updatedItem.quantity >= 0) {
                             // If item exists in cart, decrease its quantity by 1
                             if (existingCartItemIndex >= 0) {
-                              cartViewModel.updateCartItemQuantity(existingCartItemIndex, -1);
-                              
+                              cartViewModel.updateCartItemQuantity(
+                                  existingCartItemIndex, -1);
+
                               // If quantity becomes 0, remove from display
-                              if (updatedItem.quantity == 0 && existingCartItemIndex >= 0) {
-                                cartViewModel.removeFromCart(existingCartItemIndex);
+                              if (updatedItem.quantity == 0 &&
+                                  existingCartItemIndex >= 0) {
+                                cartViewModel
+                                    .removeFromCart(existingCartItemIndex);
                               }
                             }
                           }
@@ -441,15 +462,19 @@ class _SearchScreenState extends State<SearchScreen> {
                         if (menuIndex >= 0) {
                           // First check if item exists in cart
                           final existingCartItemIndex = cartViewModel.cartItems
-                              .indexWhere((cartItem) => cartItem.name == restaurantViewModel.menuItems[menuIndex].name);
-                          
-                          final updatedItem = restaurantViewModel.menuItems[menuIndex];
-                          restaurantViewModel.updateItemQuantity(
-                              menuIndex, 1);
+                              .indexWhere((cartItem) =>
+                                  cartItem.name ==
+                                  restaurantViewModel
+                                      .menuItems[menuIndex].name);
+
+                          final updatedItem =
+                              restaurantViewModel.menuItems[menuIndex];
+                          restaurantViewModel.updateItemQuantity(menuIndex, 1);
 
                           // If item already exists in cart, update its quantity
                           if (existingCartItemIndex >= 0) {
-                            cartViewModel.updateCartItemQuantity(existingCartItemIndex, 1);
+                            cartViewModel.updateCartItemQuantity(
+                                existingCartItemIndex, 1);
                           } else {
                             // Create a new cart item with quantity 1
                             final itemToAdd = FoodItem(
