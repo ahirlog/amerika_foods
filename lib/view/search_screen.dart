@@ -13,7 +13,14 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final List<String> _searchSuggestions = ['Burgers', 'Chicken', 'Fries', 'Beverages', 'Sides', 'Desserts'];
+  final List<String> _searchSuggestions = [
+    'Burgers',
+    'Chicken',
+    'Fries',
+    'Beverages',
+    'Sides',
+    'Desserts'
+  ];
   bool _isSearching = false;
   String _searchQuery = "Chicken";
   final TextEditingController _searchController = TextEditingController();
@@ -48,14 +55,15 @@ class _SearchScreenState extends State<SearchScreen> {
     return Consumer2<RestaurantViewModel, CartViewModel>(
       builder: (context, restaurantViewModel, cartViewModel, _) {
         final searchResults = restaurantViewModel.searchItems(_searchQuery);
-        
+
         return Scaffold(
           body: SafeArea(
             child: Stack(
               children: [
                 _isSearching
                     ? _buildSearchScreen()
-                    : _buildResultsScreen(searchResults, restaurantViewModel, cartViewModel),
+                    : _buildResultsScreen(
+                        searchResults, restaurantViewModel, cartViewModel),
                 if (cartViewModel.totalItems > 0 && !_isSearching)
                   Positioned(
                     bottom: 0,
@@ -98,7 +106,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   _performSearch(suggestion);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   decoration: BoxDecoration(
                     color: Colors.green[50],
                     borderRadius: BorderRadius.circular(20.0),
@@ -120,7 +129,8 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildResultsScreen(List<FoodItem> searchResults, RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
+  Widget _buildResultsScreen(List<FoodItem> searchResults,
+      RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -138,11 +148,13 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         Expanded(
           child: ListView.separated(
-            padding: EdgeInsets.only(bottom: cartViewModel.totalItems > 0 ? 80 : 20),
+            padding:
+                EdgeInsets.only(bottom: cartViewModel.totalItems > 0 ? 80 : 20),
             itemCount: searchResults.length,
             separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
-              return _buildFoodItem(index, searchResults, restaurantViewModel, cartViewModel);
+              return _buildFoodItem(
+                  index, searchResults, restaurantViewModel, cartViewModel);
             },
           ),
         ),
@@ -155,31 +167,42 @@ class _SearchScreenState extends State<SearchScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: _isSearching ? _exitSearch : () {
+          InkWell(
+            onTap: () {
               Navigator.pop(context);
             },
-            child: const Icon(Icons.arrow_back, color: Colors.black87),
+            child: const Image(
+              image: AssetImage(
+                'assets/images/back_icon.png',
+              ),
+              height: 12,
+            ),
           ),
-          const SizedBox(width: 12.0),
+          const SizedBox(width: 20.0),
           Expanded(
             child: GestureDetector(
               onTap: _toggleSearch,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(24.0),
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10.0),
+                  border: Border.all(
+                    color: const Color(0xffdddddd),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.search, color: Colors.grey[600]),
+                    const Icon(Icons.search, color: Color(0xff333333)),
                     const SizedBox(width: 8.0),
                     Expanded(
                       child: _isSearching
                           ? TextField(
                               controller: _searchController,
                               decoration: const InputDecoration(
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 0.0),
                                 hintText: 'Search',
                                 border: InputBorder.none,
                                 hintStyle: TextStyle(
@@ -197,7 +220,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                             ),
                     ),
-                    Icon(Icons.mic, color: Colors.grey[600]),
+                    const Icon(Icons.mic_none, color: Color(0xff333333)),
                   ],
                 ),
               ),
@@ -208,10 +231,12 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildFoodItem(int index, List<FoodItem> items, RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
+  Widget _buildFoodItem(int index, List<FoodItem> items,
+      RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
     final item = items[index];
-    final menuIndex = restaurantViewModel.menuItems.indexWhere((menuItem) => menuItem.name == item.name);
-    
+    final menuIndex = restaurantViewModel.menuItems
+        .indexWhere((menuItem) => menuItem.name == item.name);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
       child: Row(
@@ -275,10 +300,12 @@ class _SearchScreenState extends State<SearchScreen> {
                         icon: const Icon(Icons.remove, size: 18),
                         onPressed: () {
                           if (menuIndex >= 0) {
-                            restaurantViewModel.updateItemQuantity(menuIndex, -1);
-                            
+                            restaurantViewModel.updateItemQuantity(
+                                menuIndex, -1);
+
                             // If quantity becomes zero after decrement, update cart
-                            final updatedItem = restaurantViewModel.menuItems[menuIndex];
+                            final updatedItem =
+                                restaurantViewModel.menuItems[menuIndex];
                             if (updatedItem.quantity >= 0) {
                               cartViewModel.addToCart(updatedItem);
                             }
@@ -288,7 +315,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     const SizedBox(width: 12.0),
                     Text(
-                      menuIndex >= 0 ? '${restaurantViewModel.menuItems[menuIndex].quantity}' : '0',
+                      menuIndex >= 0
+                          ? '${restaurantViewModel.menuItems[menuIndex].quantity}'
+                          : '0',
                       style: const TextStyle(
                         fontFamily: 'FuturaStd',
                         fontSize: 18,
@@ -305,13 +334,16 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       child: IconButton(
                         padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                        icon: const Icon(Icons.add,
+                            size: 18, color: Colors.white),
                         onPressed: () {
                           if (menuIndex >= 0) {
-                            restaurantViewModel.updateItemQuantity(menuIndex, 1);
-                            
+                            restaurantViewModel.updateItemQuantity(
+                                menuIndex, 1);
+
                             // Update cart
-                            final updatedItem = restaurantViewModel.menuItems[menuIndex]; 
+                            final updatedItem =
+                                restaurantViewModel.menuItems[menuIndex];
                             cartViewModel.addToCart(updatedItem);
                           }
                         },
