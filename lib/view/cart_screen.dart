@@ -27,10 +27,7 @@ class CartScreen extends StatelessWidget {
               child: Text(
                 'Your cart is empty',
                 style: TextStyle(
-                  fontFamily: 'FuturaStd',
-                  fontSize: 18,
-                  color: Colors.grey
-                ),
+                    fontFamily: 'FuturaStd', fontSize: 18, color: Colors.grey),
               ),
             );
           }
@@ -44,19 +41,28 @@ class CartScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const Divider(),
                   itemBuilder: (context, index) {
                     final item = cartViewModel.cartItems[index];
-                    return _buildCartItem(context, item, index, cartViewModel, restaurantViewModel);
+                    return _buildCartItem(context, item, index, cartViewModel,
+                        restaurantViewModel);
                   },
                 ),
               ),
-              _buildCartSummary(context, cartViewModel),
             ],
           );
+        },
+      ),
+      bottomNavigationBar: Consumer<CartViewModel>(
+        builder: (context, cartViewModel, _) {
+          if (cartViewModel.cartItems.isEmpty) {
+            return Container(height: 0);
+          }
+          return _buildCartSummary(context, cartViewModel);
         },
       ),
     );
   }
 
-  Widget _buildCartItem(BuildContext context, FoodItem item, int index, CartViewModel cartViewModel, RestaurantViewModel restaurantViewModel) {
+  Widget _buildCartItem(BuildContext context, FoodItem item, int index,
+      CartViewModel cartViewModel, RestaurantViewModel restaurantViewModel) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -140,88 +146,105 @@ class CartScreen extends StatelessWidget {
 
   Widget _buildCartSummary(BuildContext context, CartViewModel cartViewModel) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
+      color: Colors.white,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Order Summary',
-            style: TextStyle(
+          // Order summary section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.shade200,
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Order Summary',
+                  style: TextStyle(
+                    fontFamily: 'FuturaStd',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Items Total',
+                        style: TextStyle(fontFamily: 'FuturaStd')),
+                    Text('₹ ${cartViewModel.totalPrice.toInt()}',
+                        style: const TextStyle(fontFamily: 'FuturaStd')),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Delivery Fee',
+                        style: TextStyle(fontFamily: 'FuturaStd')),
+                    Text('₹ 40',
+                        style: TextStyle(fontFamily: 'FuturaStd')),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'To Pay',
+                      style: TextStyle(
+                        fontFamily: 'FuturaStd',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '₹ ${(cartViewModel.totalPrice + 40).toInt()}',
+                      style: const TextStyle(
+                        fontFamily: 'FuturaStd',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Bottom navigation bar with Place Order button
+          BottomNavigationBar(
+            backgroundColor: Colors.white,
+            selectedItemColor: Colors.green,
+            unselectedItemColor: Colors.green,
+            selectedLabelStyle: const TextStyle(
               fontFamily: 'FuturaStd',
-              fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Items Total', style: TextStyle(fontFamily: 'FuturaStd')),
-              Text('₹ ${cartViewModel.totalPrice.toInt()}', style: TextStyle(fontFamily: 'FuturaStd')),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Delivery Fee', style: TextStyle(fontFamily: 'FuturaStd')),
-              const Text('₹ 40', style: TextStyle(fontFamily: 'FuturaStd')),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Divider(),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'To Pay',
-                style: TextStyle(
-                  fontFamily: 'FuturaStd',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                '₹ ${(cartViewModel.totalPrice + 40).toInt()}',
-                style: const TextStyle(
-                  fontFamily: 'FuturaStd',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Place Order',
-                style: TextStyle(
-                  fontFamily: 'FuturaStd',
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+            unselectedLabelStyle: const TextStyle(
+              fontFamily: 'FuturaStd',
+              fontWeight: FontWeight.bold,
             ),
+            onTap: (index) {
+              // Place order functionality
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.receipt_long),
+                label: 'Order Details',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.arrow_forward),
+                label: 'Place Order',
+              ),
+            ],
           ),
         ],
       ),
