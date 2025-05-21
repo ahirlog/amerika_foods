@@ -22,6 +22,25 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Fetch initial category items when the screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<RestaurantViewModel>(context, listen: false)
+          .fetchItemsByCategory(_categories[_selectedTabIndex]);
+    });
+  }
+
+  void _onCategorySelected(int index) {
+    setState(() {
+      _selectedTabIndex = index;
+    });
+    // Fetch items for the newly selected category
+    Provider.of<RestaurantViewModel>(context, listen: false)
+        .fetchItemsByCategory(_categories[index]);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer2<RestaurantViewModel, CartViewModel>(
       builder: (context, restaurantViewModel, cartViewModel, _) {
@@ -38,7 +57,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
-                  Container(
+                                      Container(
                     height: 200,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -138,7 +157,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -263,7 +282,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                   itemCount: _categories.length,
                   itemBuilder: (context, index) {
                     return InkWell(
-                      onTap: () => setState(() => _selectedTabIndex = index),
+                      onTap: () => _onCategorySelected(index), // Call the new method
                       child: SizedBox(
                         width: 110,
                         child: Column(
@@ -400,6 +419,19 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
 
   Widget _buildFoodItem(BuildContext context, FoodItem item, int index,
       RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
+    // Check if the item is already in the cart to show initial quantity
+    final cartItem = cartViewModel.cartItems.firstWhere(
+          (cartItm) => cartItm.name == item.name,
+      orElse: () => FoodItem(
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        quantity: 0,
+        category: item.category, // Pass category here
+      ),
+    );
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -467,24 +499,10 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                     children: [
                       InkWell(
                         onTap: () {
-                          // First check if the item exists in cart
-                          final existingCartItemIndex = cartViewModel.cartItems
-                              .indexWhere((cartItem) => cartItem.name == item.name);
-                          
-                          restaurantViewModel.updateItemQuantity(index, -1);
-
-                          if (item.quantity > 0) {
-                            // If item exists in cart, decrease its quantity by 1
-                            if (existingCartItemIndex >= 0) {
-                              cartViewModel.updateCartItemQuantity(existingCartItemIndex, -1);
-                            }
-                          } else {
-                            // Remove item completely from cart if quantity is 0
-                            if (existingCartItemIndex >= 0) {
-                              // Remove item completely
-                              cartViewModel.removeFromCart(existingCartItemIndex);
-                            }
-                          }
+                          cartViewModel.updateCartItemQuantity(
+                              cartViewModel.cartItems.indexWhere(
+                                      (element) => element.name == item.name),
+                              -1);
                         },
                         child: Container(
                           width: 32,
@@ -517,23 +535,25 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                       ),
                       InkWell(
                         onTap: () {
-                          // First check if the item exists in cart
-                          final existingCartItemIndex = cartViewModel.cartItems
-                              .indexWhere((cartItem) => cartItem.name == item.name);
-                            
-                          restaurantViewModel.updateItemQuantity(index, 1);
+                          // Find if the item already exists in the cart
+                          final existingCartItemIndex =
+                          cartViewModel.cartItems.indexWhere(
+                                  (element) => element.name == item.name);
 
-                          // If item already exists in cart, update its quantity
                           if (existingCartItemIndex >= 0) {
-                            cartViewModel.updateCartItemQuantity(existingCartItemIndex, 1);
+                            // If it exists, just update its quantity
+                            cartViewModel.updateCartItemQuantity(
+                                existingCartItemIndex, 1);
                           } else {
                             // Create a new cart item with quantity 1
                             final itemToAdd = FoodItem(
+                              id: item.id, // Pass ID
                               name: item.name,
                               description: item.description,
                               price: item.price,
                               imageUrl: item.imageUrl,
                               quantity: 1,
+                              category: item.category, // Pass category
                             );
                             cartViewModel.addToCart(itemToAdd);
                           }

@@ -25,7 +25,8 @@ class _SplashViewState extends State<SplashView> {
           'Amerika Foods',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontFamily: 'FuturaStd',
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w400,
+            fontSize: 38,
           ),
         ),
       ),

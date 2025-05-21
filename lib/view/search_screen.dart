@@ -24,6 +24,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   bool _isSearchFocused = false;
   String _searchQuery = "";
+  List<FoodItem> _searchResults = []; // To store search results
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -46,6 +47,8 @@ class _SearchScreenState extends State<SearchScreen> {
   void _onSearchChanged() {
     setState(() {
       _searchQuery = _searchController.text.trim();
+      // Perform search as user types
+      _performSearch(_searchQuery);
     });
   }
 
@@ -58,21 +61,16 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  void _performSearch(String query) {
-    setState(() {
-      _searchQuery = query;
-    });
+  Future<void> _performSearch(String query) async {
+    final restaurantViewModel = Provider.of<RestaurantViewModel>(context, listen: false);
+    _searchResults = await restaurantViewModel.searchItems(query);
+    setState(() {}); // Update UI with search results
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer2<RestaurantViewModel, CartViewModel>(
       builder: (context, restaurantViewModel, cartViewModel, _) {
-        // Show results immediately as user types
-        final searchResults = _searchQuery.isNotEmpty
-            ? restaurantViewModel.searchItems(_searchQuery)
-            : <FoodItem>[];
-
         return Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(
@@ -85,11 +83,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: _isSearchFocused && _searchQuery.isEmpty
                       ? _buildSuggestionsScreen()
                       : _searchQuery.isEmpty
-                          ? _buildEmptySearchScreen()
-                          : searchResults.isEmpty
-                              ? _buildNoResultsScreen()
-                              : _buildResultsScreen(searchResults,
-                                  restaurantViewModel, cartViewModel),
+                      ? _buildEmptySearchScreen()
+                      : _searchResults.isEmpty
+                      ? _buildNoResultsScreen()
+                      : _buildResultsScreen(_searchResults,
+                      restaurantViewModel, cartViewModel),
                 ),
                 if (cartViewModel.totalItems > 0 && !_isSearchFocused)
                   _buildCartBar(context, cartViewModel),
@@ -286,7 +284,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     child: TextFormField(
                       controller: _searchController,
                       focusNode: _searchFocusNode,
-                      onChanged: _performSearch,
+                      onChanged: (value) {
+                        _performSearch(value); // Live search as text changes
+                      },
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(vertical: 10.0),
                         hintText: 'Search',
@@ -321,8 +321,19 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildFoodItem(int index, List<FoodItem> items,
       RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
     final item = items[index];
-    final menuIndex = restaurantViewModel.menuItems
-        .indexWhere((menuItem) => menuItem.name == item.name);
+    // Check if the item is already in the cart to show initial quantity
+    final cartItem = cartViewModel.cartItems.firstWhere(
+          (cartItm) => cartItm.name == item.name,
+      orElse: () => FoodItem(
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        quantity: 0,
+        category: item.category,
+      ),
+    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,114 +392,78 @@ class _SearchScreenState extends State<SearchScreen> {
                       color: Color(0xff333333),
                     ),
                   ),
-                  const Spacer(),
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xffdddddd)),
-                      borderRadius: BorderRadius.circular(4.0),
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.remove,
-                          size: 16, color: Color(0xffdddddd)),
-                      onPressed: () {
-                        if (menuIndex >= 0) {
-                          // First check if the item exists in cart
-                          final existingCartItemIndex = cartViewModel.cartItems
-                              .indexWhere((cartItem) =>
-                                  cartItem.name ==
-                                  restaurantViewModel
-                                      .menuItems[menuIndex].name);
-
-                          restaurantViewModel.updateItemQuantity(menuIndex, -1);
-
-                          // If quantity becomes zero after decrement, update cart
-                          final updatedItem =
-                              restaurantViewModel.menuItems[menuIndex];
-
-                          if (updatedItem.quantity >= 0) {
-                            // If item exists in cart, decrease its quantity by 1
-                            if (existingCartItemIndex >= 0) {
-                              cartViewModel.updateCartItemQuantity(
-                                  existingCartItemIndex, -1);
-
-                              // If quantity becomes 0, remove from display
-                              if (updatedItem.quantity == 0 &&
-                                  existingCartItemIndex >= 0) {
-                                cartViewModel
-                                    .removeFromCart(existingCartItemIndex);
-                              }
-                            }
-                          }
-                        }
-                      },
-                    ),
-                  ),
-                  Container(
-                    width: 32,
-                    alignment: Alignment.center,
-                    child: Text(
-                      menuIndex >= 0
-                          ? '${restaurantViewModel.menuItems[menuIndex].quantity}'
-                          : '0',
-                      style: const TextStyle(
-                        fontFamily: 'FuturaStd',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xff333333),
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          cartViewModel.updateCartItemQuantity(
+                              cartViewModel.cartItems.indexWhere(
+                                      (element) => element.name == item.name),
+                              -1);
+                        },
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: const Icon(Icons.remove,
+                              size: 16, color: Color(0xff0db647)),
+                        ),
                       ),
-                    ),
-                  ),
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xffe6f8ec),
-                      borderRadius: BorderRadius.circular(4.0),
-                      border: Border.all(
-                        color: const Color(0xff0db647),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Text(
+                          '${cartItem.quantity}',
+                          style: const TextStyle(
+                            fontFamily: 'FuturaStd',
+                            color: Color(0xff333333),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(
-                        Icons.add,
-                        size: 16,
-                        color: Color(0xff0db647),
-                      ),
-                      onPressed: () {
-                        if (menuIndex >= 0) {
-                          // First check if item exists in cart
-                          final existingCartItemIndex = cartViewModel.cartItems
-                              .indexWhere((cartItem) =>
-                                  cartItem.name ==
-                                  restaurantViewModel
-                                      .menuItems[menuIndex].name);
+                      InkWell(
+                        onTap: () {
+                          final existingCartItemIndex =
+                          cartViewModel.cartItems.indexWhere(
+                                  (element) => element.name == item.name);
 
-                          final updatedItem =
-                              restaurantViewModel.menuItems[menuIndex];
-                          restaurantViewModel.updateItemQuantity(menuIndex, 1);
-
-                          // If item already exists in cart, update its quantity
                           if (existingCartItemIndex >= 0) {
                             cartViewModel.updateCartItemQuantity(
                                 existingCartItemIndex, 1);
                           } else {
-                            // Create a new cart item with quantity 1
                             final itemToAdd = FoodItem(
-                              name: updatedItem.name,
-                              description: updatedItem.description,
-                              price: updatedItem.price,
-                              imageUrl: updatedItem.imageUrl,
+                              id: item.id,
+                              name: item.name,
+                              description: item.description,
+                              price: item.price,
+                              imageUrl: item.imageUrl,
                               quantity: 1,
+                              category: item.category,
                             );
                             cartViewModel.addToCart(itemToAdd);
                           }
-                        }
-                      },
-                    ),
+                        },
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: const Color(0xffe6f8ec),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: const Color(0xff0db647),
+                            ),
+                          ),
+                          child: const Icon(
+                            size: 16,
+                            Icons.add,
+                            color: Color(0xff0db647),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -505,8 +480,7 @@ class _SearchScreenState extends State<SearchScreen> {
         Navigator.pushNamed(context, RoutesName.cart);
       },
       child: Container(
-        padding:
-            const EdgeInsets.only(top: 15, bottom: 30, left: 16, right: 16),
+        padding: const EdgeInsets.only(top: 15, bottom: 30, left: 16, right: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [

@@ -18,7 +18,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => RestaurantViewModel()),
         ChangeNotifierProvider(create: (context) {
-          final restaurantViewModel = Provider.of<RestaurantViewModel>(context, listen: false);
+          final restaurantViewModel =
+              Provider.of<RestaurantViewModel>(context, listen: false);
           final cartViewModel = CartViewModel();
           cartViewModel.linkRestaurantViewModel(restaurantViewModel);
           return cartViewModel;
@@ -32,19 +33,29 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
           fontFamily: 'FuturaStd',
           textTheme: const TextTheme(
-            displayLarge: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
-            displayMedium: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
-            displaySmall: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
-            headlineLarge: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
-            headlineMedium: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
-            headlineSmall: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
-            titleLarge: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.w500),
-            titleMedium: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.w500),
-            titleSmall: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.w500),
+            displayLarge:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
+            displayMedium:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
+            displaySmall:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
+            headlineLarge:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
+            headlineMedium:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
+            headlineSmall:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.bold),
+            titleLarge:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.w500),
+            titleMedium:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.w500),
+            titleSmall:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.w500),
             bodyLarge: TextStyle(fontFamily: 'FuturaStd'),
             bodyMedium: TextStyle(fontFamily: 'FuturaStd'),
             bodySmall: TextStyle(fontFamily: 'FuturaStd'),
-            labelLarge: TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.w500),
+            labelLarge:
+                TextStyle(fontFamily: 'FuturaStd', fontWeight: FontWeight.w500),
             labelMedium: TextStyle(fontFamily: 'FuturaStd'),
             labelSmall: TextStyle(fontFamily: 'FuturaStd'),
           ),
