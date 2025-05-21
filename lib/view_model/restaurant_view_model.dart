@@ -5,19 +5,47 @@ import 'package:flutter_notes/model/food_item_model.dart';
 class RestaurantViewModel with ChangeNotifier {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   List<FoodItem> _menuItems = [];
+  String _currentCategory = 'Recommended';
   bool _isLoading = false;
   String _error = '';
+  bool _isInSearchMode = false;
 
   RestaurantViewModel() {
-    _loadFoodItems();
+    _loadAllItems();
   }
 
-  Future<void> _loadFoodItems() async {
+  String _getFixedImageUrl(String imageUrl) {
+    if (imageUrl.startsWith('assets/')) {
+      return imageUrl;
+    }
+    
+    try {
+      Uri.parse(imageUrl);
+      return imageUrl;
+    } catch (e) {
+      return 'assets/images/food/default_food.png';
+    }
+  }
+
+  FoodItem _fixFoodItemImage(FoodItem item) {
+    return FoodItem(
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      description: item.description,
+      price: item.price,
+      imageUrl: _getFixedImageUrl(item.imageUrl),
+      quantity: item.quantity,
+    );
+  }
+
+  Future<void> _loadAllItems() async {
     try {
       _isLoading = true;
       notifyListeners();
       
-      _menuItems = await _databaseHelper.getAllFoodItems();
+      final items = await _databaseHelper.getAllFoodItems();
+      _menuItems = items.map((item) => _fixFoodItemImage(item)).toList();
       
       _isLoading = false;
       notifyListeners();
@@ -35,9 +63,35 @@ class RestaurantViewModel with ChangeNotifier {
     try {
       _isLoading = true;
       _error = '';
+      _isInSearchMode = false;
+      _currentCategory = category;
       notifyListeners();
 
-      _menuItems = await _databaseHelper.getFoodItemsByCategory(category);
+      final items = await _databaseHelper.getFoodItemsByCategory(category);
+
+      final Map<String, int> itemQuantities = {};
+      for (var item in _menuItems) {
+        if (item.quantity > 0) {
+          itemQuantities[item.name] = item.quantity;
+        }
+      }
+
+      _menuItems = items.map((item) {
+        final fixedItem = _fixFoodItemImage(item);
+        if (itemQuantities.containsKey(fixedItem.name)) {
+          return FoodItem(
+            id: fixedItem.id,
+            name: fixedItem.name,
+            category: fixedItem.category,
+            description: fixedItem.description,
+            price: fixedItem.price,
+            imageUrl: fixedItem.imageUrl,
+            quantity: itemQuantities[fixedItem.name] ?? 0,
+          );
+        }
+        return fixedItem;
+      }).toList();
+      
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -52,13 +106,38 @@ class RestaurantViewModel with ChangeNotifier {
     try {
       _isLoading = true;
       _error = '';
+      _isInSearchMode = true;
       notifyListeners();
 
+      List<FoodItem> items;
       if (query.isEmpty) {
-        _menuItems = await _databaseHelper.getAllFoodItems();
+        items = await _databaseHelper.getAllFoodItems();
       } else {
-        _menuItems = await _databaseHelper.searchItems(query);
+        items = await _databaseHelper.searchItems(query);
       }
+
+      final Map<String, int> itemQuantities = {};
+      for (var item in _menuItems) {
+        if (item.quantity > 0) {
+          itemQuantities[item.name] = item.quantity;
+        }
+      }
+      
+      _menuItems = items.map((item) {
+        final fixedItem = _fixFoodItemImage(item);
+        if (itemQuantities.containsKey(fixedItem.name)) {
+          return FoodItem(
+            id: fixedItem.id,
+            name: fixedItem.name,
+            category: fixedItem.category,
+            description: fixedItem.description,
+            price: fixedItem.price,
+            imageUrl: fixedItem.imageUrl,
+            quantity: itemQuantities[fixedItem.name] ?? 0,
+          );
+        }
+        return fixedItem;
+      }).toList();
       
       _isLoading = false;
       notifyListeners();
@@ -69,6 +148,13 @@ class RestaurantViewModel with ChangeNotifier {
       _menuItems = [];
       notifyListeners();
       return [];
+    }
+  }
+
+  void restoreOriginalItems() {
+    if (_isInSearchMode) {
+      _isInSearchMode = false;
+      fetchItemsByCategory(_currentCategory);
     }
   }
 
@@ -114,4 +200,5 @@ class RestaurantViewModel with ChangeNotifier {
 
   bool get isLoading => _isLoading;
   String get error => _error;
+  bool get isInSearchMode => _isInSearchMode;
 }

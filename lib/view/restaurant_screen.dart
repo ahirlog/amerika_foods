@@ -14,30 +14,58 @@ class RestaurantScreen extends StatefulWidget {
 
 class _RestaurantScreenState extends State<RestaurantScreen> {
   int _selectedTabIndex = 0;
+  final ScrollController _scrollController = ScrollController();
   final List<String> _categories = [
     'Recommended',
     'Combos',
     'Regular Burgers',
     'Specials'
   ];
+  bool _isFirstBuild = true;
 
   @override
   void initState() {
     super.initState();
-    // Fetch initial category items when the screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<RestaurantViewModel>(context, listen: false)
-          .fetchItemsByCategory(_categories[_selectedTabIndex]);
+      final cartViewModel = Provider.of<CartViewModel>(context, listen: false);
+      final restaurantViewModel = Provider.of<RestaurantViewModel>(context, listen: false);
+      cartViewModel.linkRestaurantViewModel(restaurantViewModel);
+      
+      // Fetch initial items
+      restaurantViewModel.fetchItemsByCategory(_categories[_selectedTabIndex]);
     });
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_isFirstBuild) {
+      // Refresh data when returning to this screen
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final restaurantViewModel = Provider.of<RestaurantViewModel>(context, listen: false);
+
+        restaurantViewModel.fetchItemsByCategory(_categories[_selectedTabIndex]);
+      });
+    }
+    _isFirstBuild = false;
   }
 
   void _onCategorySelected(int index) {
     setState(() {
       _selectedTabIndex = index;
     });
-    // Fetch items for the newly selected category
+
     Provider.of<RestaurantViewModel>(context, listen: false)
         .fetchItemsByCategory(_categories[index]);
+
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
@@ -157,7 +185,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
+                        const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -303,7 +331,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                             const SizedBox(height: 8),
                             Container(
                               height: 2.5,
-                              width: 92,
+                              width: _categories[index].length * 8, // Dynamic width based on text length
                               color: _selectedTabIndex == index
                                   ? Colors.green
                                   : Colors.transparent,
@@ -324,6 +352,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
               // Menu Items
               Expanded(
                 child: ListView.separated(
+                  controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
                   itemCount: restaurantViewModel.menuItems.length,
                   itemBuilder: (context, index) {
@@ -341,72 +370,76 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
 
               // Cart Bar
               if (cartViewModel.totalItems > 0)
-                InkWell(
-                  onTap: () {
-                    Navigator.pushNamed(context, RoutesName.cart);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.only(
-                        top: 15, bottom: 30, left: 16, right: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, -4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          '${cartViewModel.totalItems} ${cartViewModel.totalItems == 1 ? 'item' : 'items'}',
-                          style: const TextStyle(
-                            fontFamily: 'FuturaStd',
-                            color: Color(0xff333333),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                SafeArea(
+                  top: false,
+                  bottom: true,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.pushNamed(context, RoutesName.cart);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.only(
+                          top: 10, bottom: 10, left: 16, right: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, -4),
                           ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 12),
-                          height: 16,
-                          width: 1,
-                          color: const Color(0xffDDDDDD),
-                        ),
-                        Text(
-                          '₹ ${cartViewModel.totalPrice.toInt()}',
-                          style: const TextStyle(
-                            fontFamily: 'FuturaStd',
-                            color: Color(0xff333333),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            '${cartViewModel.totalItems} ${cartViewModel.totalItems == 1 ? 'item' : 'items'}',
+                            style: const TextStyle(
+                              fontFamily: 'FuturaStd',
+                              color: Color(0xff333333),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xff11B546),
-                            borderRadius: BorderRadius.circular(8),
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 12),
+                            height: 16,
+                            width: 1,
+                            color: const Color(0xffDDDDDD),
                           ),
-                          width: 93,
-                          height: 44,
-                          child: const Center(
-                            child: Text(
-                              'View cart',
-                              style: TextStyle(
-                                fontFamily: 'FuturaStd',
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                          Text(
+                            '₹ ${cartViewModel.totalPrice.toInt()}',
+                            style: const TextStyle(
+                              fontFamily: 'FuturaStd',
+                              color: Color(0xff333333),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xff11B546),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            width: 93,
+                            height: 44,
+                            child: const Center(
+                              child: Text(
+                                'View cart',
+                                style: TextStyle(
+                                  fontFamily: 'FuturaStd',
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -421,7 +454,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
       RestaurantViewModel restaurantViewModel, CartViewModel cartViewModel) {
     // Check if the item is already in the cart to show initial quantity
     final cartItem = cartViewModel.cartItems.firstWhere(
-          (cartItm) => cartItm.name == item.name,
+      (cartItm) => cartItm.name == item.name,
       orElse: () => FoodItem(
         name: item.name,
         description: item.description,
@@ -501,7 +534,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                         onTap: () {
                           cartViewModel.updateCartItemQuantity(
                               cartViewModel.cartItems.indexWhere(
-                                      (element) => element.name == item.name),
+                                  (element) => element.name == item.name),
                               -1);
                         },
                         child: Container(
@@ -524,7 +557,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                         width: 36,
                         alignment: Alignment.center,
                         child: Text(
-                          '${item.quantity}',
+                          '${cartItem.quantity}',
                           style: const TextStyle(
                             fontFamily: 'FuturaStd',
                             fontSize: 14,
@@ -536,8 +569,8 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                       InkWell(
                         onTap: () {
                           // Find if the item already exists in the cart
-                          final existingCartItemIndex =
-                          cartViewModel.cartItems.indexWhere(
+                          final existingCartItemIndex = cartViewModel.cartItems
+                              .indexWhere(
                                   (element) => element.name == item.name);
 
                           if (existingCartItemIndex >= 0) {
@@ -547,7 +580,8 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                           } else {
                             // Create a new cart item with quantity 1
                             final itemToAdd = FoodItem(
-                              id: item.id, // Pass ID
+                              id: item.id,
+                              // Pass ID
                               name: item.name,
                               description: item.description,
                               price: item.price,

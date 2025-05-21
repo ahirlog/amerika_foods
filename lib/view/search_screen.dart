@@ -24,15 +24,27 @@ class _SearchScreenState extends State<SearchScreen> {
 
   bool _isSearchFocused = false;
   String _searchQuery = "";
-  List<FoodItem> _searchResults = []; // To store search results
+  List<FoodItem> _searchResults = [];
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  late RestaurantViewModel _restaurantViewModel;
 
   @override
   void initState() {
     super.initState();
     _searchFocusNode.addListener(_onFocusChange);
     _searchController.addListener(_onSearchChanged);
+    
+    // Request focus when the screen is created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchFocusNode.requestFocus();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _restaurantViewModel = Provider.of<RestaurantViewModel>(context, listen: false);
   }
 
   @override
@@ -41,6 +53,12 @@ class _SearchScreenState extends State<SearchScreen> {
     _searchFocusNode.removeListener(_onFocusChange);
     _searchFocusNode.dispose();
     _searchController.removeListener(_onSearchChanged);
+    
+    // Now use the already stored reference
+    if (_restaurantViewModel.isInSearchMode) {
+      _restaurantViewModel.restoreOriginalItems();
+    }
+    
     super.dispose();
   }
 
@@ -62,8 +80,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _performSearch(String query) async {
-    final restaurantViewModel = Provider.of<RestaurantViewModel>(context, listen: false);
-    _searchResults = await restaurantViewModel.searchItems(query);
+    _searchResults = await _restaurantViewModel.searchItems(query);
     setState(() {}); // Update UI with search results
   }
 
@@ -74,11 +91,11 @@ class _SearchScreenState extends State<SearchScreen> {
         return Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(
-            bottom: false,
+            bottom: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSearchHeader(),
+                _buildSearchHeader(cartViewModel),
                 Expanded(
                   child: _isSearchFocused && _searchQuery.isEmpty
                       ? _buildSuggestionsScreen()
@@ -89,7 +106,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       : _buildResultsScreen(_searchResults,
                       restaurantViewModel, cartViewModel),
                 ),
-                if (cartViewModel.totalItems > 0 && !_isSearchFocused)
+                if (cartViewModel.totalItems > 0)
                   _buildCartBar(context, cartViewModel),
               ],
             ),
@@ -240,14 +257,18 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildSearchHeader() {
+  Widget _buildSearchHeader(CartViewModel cartViewModel) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
           InkWell(
             onTap: () {
-              Navigator.pop(context);
+              _restaurantViewModel.restoreOriginalItems();
+
+              Future.delayed(Duration.zero, () {
+                Navigator.pop(context);
+              });
             },
             child: Container(
               padding: const EdgeInsets.all(8),
@@ -267,48 +288,69 @@ class _SearchScreenState extends State<SearchScreen> {
           Expanded(
             child: Container(
               height: 44,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10.0),
                 border: Border.all(
-                  color: const Color(0xffdddddd),
+                  color: _isSearchFocused ? const Color(0xff11B546) : const Color(0xffdddddd),
                 ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: Color(0xff333333), size: 18),
+                  Icon(
+                    Icons.search, 
+                    color: _isSearchFocused ? const Color(0xff11B546) : const Color(0xff333333), 
+                    size: 18
+                  ),
                   const SizedBox(width: 8.0),
                   Expanded(
-                    child: TextFormField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      onChanged: (value) {
-                        _performSearch(value); // Live search as text changes
+                    child: GestureDetector(
+                      onTap: () {
+                        _searchFocusNode.requestFocus();
                       },
-                      decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(vertical: 10.0),
-                        hintText: 'Search',
-                        hintStyle: TextStyle(
+                      child: TextFormField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        onChanged: (value) {
+                          _performSearch(value);
+                        },
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
+                          hintText: 'Search',
+                          hintStyle: const TextStyle(
+                            fontFamily: 'FuturaStd',
+                            color: Color(0xff888888),
+                            fontWeight: FontWeight.w400,
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _performSearch('');
+                                  },
+                                )
+                              : null,
+                        ),
+                        style: TextStyle(
                           fontFamily: 'FuturaStd',
-                          color: Color(0xff888888),
-                          fontWeight: FontWeight.w400,
+                          color: _isSearchFocused ? const Color(0xff11B546) : const Color(0xff333333),
                           fontSize: 14,
                         ),
-                        border: InputBorder.none,
-                        isDense: true,
+                        onFieldSubmitted: _performSearch,
                       ),
-                      style: const TextStyle(
-                        fontFamily: 'FuturaStd',
-                        color: Color(0xff333333),
-                        fontSize: 14,
-                      ),
-                      onFieldSubmitted: _performSearch,
                     ),
                   ),
-                  const Icon(Icons.mic_none,
-                      color: Color(0xff333333), size: 20),
+                  Icon(
+                    Icons.mic_none,
+                    color: _isSearchFocused ? const Color(0xff11B546) : const Color(0xff333333), 
+                    size: 20
+                  ),
                 ],
               ),
             ),
@@ -400,6 +442,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               cartViewModel.cartItems.indexWhere(
                                       (element) => element.name == item.name),
                               -1);
+                          setState(() {});
                         },
                         child: Container(
                           width: 32,
@@ -445,6 +488,8 @@ class _SearchScreenState extends State<SearchScreen> {
                             );
                             cartViewModel.addToCart(itemToAdd);
                           }
+
+                          setState(() {});
                         },
                         child: Container(
                           width: 32,
@@ -480,7 +525,7 @@ class _SearchScreenState extends State<SearchScreen> {
         Navigator.pushNamed(context, RoutesName.cart);
       },
       child: Container(
-        padding: const EdgeInsets.only(top: 15, bottom: 30, left: 16, right: 16),
+        padding: const EdgeInsets.only(top: 10, bottom: 10, left: 16, right: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
